@@ -82,7 +82,7 @@ class RefidResolutionTest {
   @Test
   void shouldThrowExceptionWhenRefPrivateSqlNode() {
     Configuration configuration = new Configuration();
-    configuration.addXmlResource("org/apache/ibatis/submitted/refid_resolution/ExternalMapper3.xml");
+    configuration.addXmlMapperResource("org/apache/ibatis/submitted/refid_resolution/ExternalMapper3.xml");
 
     final String exceptionMessage = "Could not find SQL statement to include with refid "
         + "'org.apache.ibatis.submitted.refid_resolution.ExternalMapper2.externalPrivateColumnList'"

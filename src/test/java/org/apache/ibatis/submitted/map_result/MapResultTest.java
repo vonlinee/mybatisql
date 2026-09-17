@@ -34,7 +34,8 @@ class MapResultTest {
   @BeforeAll
   static void setUp() throws Exception {
     sqlSessionFactory = BaseDataTest.createDefaultHsqlDbSqlSessionFactory("map_result");
-    sqlSessionFactory.getConfiguration().addXmlResource("org/apache/ibatis/submitted/map_result/NoticeMapper.xml");
+    sqlSessionFactory.getConfiguration()
+        .addXmlMapperResource("org/apache/ibatis/submitted/map_result/NoticeMapper.xml");
 
     BaseDataTest.runScriptSql(sqlSessionFactory, """
         drop table notice if exists;

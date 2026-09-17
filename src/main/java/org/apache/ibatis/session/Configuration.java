@@ -858,7 +858,7 @@ public class Configuration {
     return mapperRegistry.hasMapper(type);
   }
 
-  public void addXmlResource(String resource) {
+  public void addXmlMapperResource(String resource) {
     Objects.requireNonNull(resource, "resource cannot be null");
     try (InputStream stream = Resources.getResourceAsStream(resource)) {
       new XMLMapperBuilder(stream, this, resource, sqlFragments).parse();

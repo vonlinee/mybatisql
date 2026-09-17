@@ -34,7 +34,8 @@ class SimplifyStaticFunctionTest {
   static void setUp() throws Exception {
     sqlSessionFactory = BaseDataTest.createDefaultHsqlDbSqlSessionFactory("ognlStaticCall");
     sqlSessionFactory.getConfiguration().setLogImpl(StdOutImpl.class);
-    sqlSessionFactory.getConfiguration().addXmlResource("org/apache/ibatis/submitted/ognl_static_simplify/Mapper.xml");
+    sqlSessionFactory.getConfiguration()
+        .addXmlMapperResource("org/apache/ibatis/submitted/ognl_static_simplify/Mapper.xml");
     // populate in-memory database
     BaseDataTest.runScriptSql(sqlSessionFactory, """
         drop table users if exists;

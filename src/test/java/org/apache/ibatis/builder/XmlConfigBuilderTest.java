@@ -374,7 +374,7 @@ class XmlConfigBuilderTest {
   @Test
   void shouldAddXmlMapperWithMultipleMappers() {
     Configuration configuration = new Configuration();
-    Assertions.assertDoesNotThrow(() -> configuration.addXmlResource("org/apache/ibatis/builder/PostMapper.xml"));
+    Assertions.assertDoesNotThrow(() -> configuration.addXmlMapperResource("org/apache/ibatis/builder/PostMapper.xml"));
 
     Assertions.assertTrue(configuration.hasStatement("selectPostLite"));
     Assertions
