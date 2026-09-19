@@ -19,7 +19,12 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
 import org.apache.ibatis.extension.metadata.TableInfo;
+import org.apache.ibatis.internal.util.ClassMatcher;
+import org.apache.ibatis.io.ResolverUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,6 +39,9 @@ import org.jetbrains.annotations.Nullable;
  * </ol>
  */
 public class TableInfoRegistry {
+
+  public static ClassMatcher JPA_CLASS_MATCHER = type -> !type.isInterface()
+      && (type.isAnnotationPresent(Entity.class) || type.isAnnotationPresent(Table.class));
 
   /**
    * Primary cache: Maps the Java Entity Class to its parsed metadata.
@@ -80,6 +88,10 @@ public class TableInfoRegistry {
     for (Class<?> clazz : classes) {
       registerClass(clazz);
     }
+  }
+
+  public void registerPackage(String packageName, ClassMatcher matcher) {
+    ResolverUtil.findClassesInPackage(packageName, null, matcher).forEach(this::registerClass);
   }
 
   /**
