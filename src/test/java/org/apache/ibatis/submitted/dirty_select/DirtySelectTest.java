@@ -106,7 +106,7 @@ class DirtySelectTest {
   }
 
   @Test
-  void shouldRollbackIfCalled_Cursor() throws Exception {
+  void shouldRollbackIfCalled_Cursor() {
     Integer id;
     try (SqlSession sqlSession = sqlSessionFactory.openSession(false)) {
       Mapper mapper = sqlSession.getMapper(Mapper.class);

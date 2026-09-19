@@ -17,10 +17,7 @@ package org.apache.ibatis.submitted.default_method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.Reader;
-
 import org.apache.ibatis.BaseDataTest;
-import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -34,11 +31,8 @@ class DefaultMethodTest {
 
   @BeforeAll
   static void setUp() throws Exception {
-    // create an SqlSessionFactory
-    try (Reader reader = Resources
-        .getResourceAsReader("org/apache/ibatis/submitted/default_method/mybatis-config.xml")) {
-      sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
-    }
+    sqlSessionFactory = SqlSessionFactoryBuilder
+        .buildFromResource("org/apache/ibatis/submitted/default_method/mybatis-config.xml");
 
     // populate in-memory database
     BaseDataTest.runScript(sqlSessionFactory, "org/apache/ibatis/submitted/default_method/CreateDB.sql");

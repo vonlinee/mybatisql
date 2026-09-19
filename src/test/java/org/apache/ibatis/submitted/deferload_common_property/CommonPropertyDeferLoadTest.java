@@ -17,12 +17,10 @@ package org.apache.ibatis.submitted.deferload_common_property;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.ibatis.BaseDataTest;
-import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.ResultContext;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.SqlSession;
@@ -38,14 +36,11 @@ class CommonPropertyDeferLoadTest {
 
   @BeforeAll
   static void initDatabase() throws Exception {
-    try (Reader reader = Resources
-        .getResourceAsReader("org/apache/ibatis/submitted/deferload_common_property/ibatisConfig.xml")) {
-      sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
-    }
-    try (Reader reader = Resources
-        .getResourceAsReader("org/apache/ibatis/submitted/deferload_common_property/lazyLoadIbatisConfig.xml")) {
-      lazyLoadSqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
-    }
+    sqlSessionFactory = SqlSessionFactoryBuilder
+        .buildFromResource("org/apache/ibatis/submitted/deferload_common_property/ibatisConfig.xml");
+
+    lazyLoadSqlSessionFactory = SqlSessionFactoryBuilder
+        .buildFromResource("org/apache/ibatis/submitted/deferload_common_property/lazyLoadIbatisConfig.xml");
 
     BaseDataTest.runScript(sqlSessionFactory, "org/apache/ibatis/submitted/deferload_common_property/CreateDB.sql");
   }

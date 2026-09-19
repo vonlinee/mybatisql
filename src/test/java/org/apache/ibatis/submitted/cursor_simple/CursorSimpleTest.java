@@ -15,7 +15,6 @@
  */
 package org.apache.ibatis.submitted.cursor_simple;
 
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -23,7 +22,6 @@ import java.util.NoSuchElementException;
 
 import org.apache.ibatis.BaseDataTest;
 import org.apache.ibatis.cursor.Cursor;
-import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -42,10 +40,8 @@ class CursorSimpleTest {
   @BeforeAll
   static void setUp() throws Exception {
     // create a SqlSessionFactory
-    try (
-        Reader reader = Resources.getResourceAsReader("org/apache/ibatis/submitted/cursor_simple/mybatis-config.xml")) {
-      sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
-    }
+    sqlSessionFactory = SqlSessionFactoryBuilder
+        .buildFromResource("org/apache/ibatis/submitted/cursor_simple/mybatis-config.xml");
 
     // populate in-memory database
     BaseDataTest.runScript(sqlSessionFactory, "org/apache/ibatis/submitted/cursor_simple/CreateDB.sql");
@@ -392,7 +388,7 @@ class CursorSimpleTest {
   void shouldNullItemNotStopIteration() {
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
       Mapper mapper = sqlSession.getMapper(Mapper.class);
-      Cursor<User> cursor = mapper.getNullUsers(new RowBounds());
+      Cursor<User> cursor = mapper.getNullUsers(RowBounds.DEFAULT);
       Iterator<User> iterator = cursor.iterator();
 
       Assertions.assertFalse(cursor.isOpen());

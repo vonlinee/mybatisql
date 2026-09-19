@@ -15,9 +15,6 @@
  */
 package org.apache.ibatis.submitted.databaseid_productname;
 
-import java.io.Reader;
-
-import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -31,10 +28,8 @@ class DatabaseIdProductNameTest {
 
   @BeforeAll
   static void setUp() throws Exception {
-    try (Reader reader = Resources
-        .getResourceAsReader("org/apache/ibatis/submitted/databaseid_productname/mybatis-config.xml")) {
-      sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
-    }
+    sqlSessionFactory = SqlSessionFactoryBuilder
+        .buildFromResource("org/apache/ibatis/submitted/databaseid_productname/mybatis-config.xml");
   }
 
   @Test
