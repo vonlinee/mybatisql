@@ -18,7 +18,6 @@ package org.apache.ibatis.binding;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
@@ -101,10 +100,7 @@ public class MapperRegistry {
    * @since 3.2.2
    */
   public void addMappers(String packageName, Class<?> superType) {
-    ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
-    resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
-    Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
-    for (Class<?> mapperClass : mapperSet) {
+    for (Class<?> mapperClass : ResolverUtil.findChildClassesInPackage(packageName, superType)) {
       addMapper(mapperClass);
     }
   }

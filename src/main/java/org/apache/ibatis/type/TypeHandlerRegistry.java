@@ -44,7 +44,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.ibatis.binding.ParamMap;
@@ -518,10 +517,7 @@ public final class TypeHandlerRegistry {
   // scan
 
   public void register(String packageName) {
-    ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
-    resolverUtil.find(new ResolverUtil.IsA(TypeHandler.class), packageName);
-    Set<Class<? extends Class<?>>> handlerSet = resolverUtil.getClasses();
-    for (Class<?> type : handlerSet) {
+    for (Class<?> type : ResolverUtil.findChildClassesInPackage(packageName, TypeHandler.class)) {
       // Ignore inner classes and interfaces (including package-info.java) and abstract classes
       if (!type.isAnonymousClass() && !type.isInterface() && !Modifier.isAbstract(type.getModifiers())) {
         register(type);

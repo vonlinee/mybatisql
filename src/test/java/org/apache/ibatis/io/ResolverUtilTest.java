@@ -26,6 +26,7 @@ import java.security.PrivilegedAction;
 import java.util.Set;
 
 import org.apache.ibatis.annotations.CacheNamespace;
+import org.apache.ibatis.internal.util.ClassMatcher;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +58,7 @@ class ResolverUtilTest {
 
   @Test
   void setClassLoader() {
-    ResolverUtil resolverUtil = new ResolverUtil();
+    ResolverUtil<?> resolverUtil = new ResolverUtil<>();
     AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
       resolverUtil.setClassLoader(new ClassLoader() {
       });
@@ -105,7 +106,7 @@ class ResolverUtilTest {
   @Test
   void find() {
     ResolverUtil<VFS> resolverUtil = new ResolverUtil<>();
-    resolverUtil.find(new ResolverUtil.IsA(VFS.class), "org.apache.ibatis.io");
+    resolverUtil.find(ClassMatcher.isA(VFS.class), "org.apache.ibatis.io");
     Set<Class<? extends VFS>> classSets = resolverUtil.getClasses();
     // org.apache.ibatis.io.VFS
     // org.apache.ibatis.io.DefaultVFS
@@ -116,7 +117,7 @@ class ResolverUtilTest {
 
   @Test
   void getPackagePath() {
-    ResolverUtil resolverUtil = new ResolverUtil();
+    ResolverUtil<?> resolverUtil = new ResolverUtil<>();
     assertNull(resolverUtil.getPackagePath(null));
     assertEquals("org/apache/ibatis/io", resolverUtil.getPackagePath("org.apache.ibatis.io"));
   }
@@ -124,8 +125,8 @@ class ResolverUtilTest {
   @Test
   void addIfMatching() {
     ResolverUtil<VFS> resolverUtil = new ResolverUtil<>();
-    resolverUtil.addIfMatching(new ResolverUtil.IsA(VFS.class), "org/apache/ibatis/io/DefaultVFS.class");
-    resolverUtil.addIfMatching(new ResolverUtil.IsA(VFS.class), "org/apache/ibatis/io/VFS.class");
+    resolverUtil.addIfMatching(ClassMatcher.isA(VFS.class), "org/apache/ibatis/io/DefaultVFS.class");
+    resolverUtil.addIfMatching(ClassMatcher.isA(VFS.class), "org/apache/ibatis/io/VFS.class");
     Set<Class<? extends VFS>> classSets = resolverUtil.getClasses();
     assertEquals(2, classSets.size());
     classSets.forEach(c -> assertTrue(VFS.class.isAssignableFrom(c)));
@@ -134,17 +135,16 @@ class ResolverUtilTest {
   @Test
   void addIfNotMatching() {
     ResolverUtil<VFS> resolverUtil = new ResolverUtil<>();
-    resolverUtil.addIfMatching(new ResolverUtil.IsA(VFS.class), "org/apache/ibatis/io/Xxx.class");
+    resolverUtil.addIfMatching(ClassMatcher.isA(VFS.class), "org/apache/ibatis/io/Xxx.class");
     assertEquals(0, resolverUtil.getClasses().size());
   }
 
   @Test
   void testToString() {
-    ResolverUtil.IsA isa = new ResolverUtil.IsA(VFS.class);
-    assertTrue(isa.toString().contains(VFS.class.getSimpleName()));
+    assertTrue(ClassMatcher.isA(VFS.class).toString().contains(VFS.class.getSimpleName()));
 
-    ResolverUtil.AnnotatedWith annotatedWith = new ResolverUtil.AnnotatedWith(CacheNamespace.class);
-    assertTrue(annotatedWith.toString().contains("@" + CacheNamespace.class.getSimpleName()));
+    assertTrue(ClassMatcher.annotatedWith(CacheNamespace.class).toString()
+        .contains("@" + CacheNamespace.class.getSimpleName()));
   }
 
   @CacheNamespace(readWrite = false)

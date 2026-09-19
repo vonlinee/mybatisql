@@ -57,6 +57,11 @@ public interface ClassMatcher {
       public boolean matches(Class<?> type) {
         return type != null && parent.isAssignableFrom(type);
       }
+
+      @Override
+      public String toString() {
+        return "is assignable to " + parent.getSimpleName();
+      }
     };
   }
 
@@ -69,6 +74,11 @@ public interface ClassMatcher {
       @Override
       public boolean matches(Class<?> type) {
         return type != null && type.isAnnotationPresent(annotation);
+      }
+
+      @Override
+      public String toString() {
+        return "annotated with @" + annotation.getSimpleName();
       }
     };
   }
