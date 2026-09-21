@@ -23,6 +23,7 @@ import org.apache.ibatis.extension.metadata.ColumnInfo;
 import org.apache.ibatis.extension.metadata.ColumnMetadata;
 import org.apache.ibatis.extension.metadata.TableInfo;
 import org.apache.ibatis.extension.metadata.TableMetadata;
+import org.apache.ibatis.extension.metadata.TableType;
 
 /**
  * Strategy to parse simple POJOs using convention-over-configuration. Converts CamelCase to snake_case.
@@ -33,9 +34,8 @@ public class SimplePojoTableInfoParser extends AbstractTableInfoParser {
   public TableInfo parse(Class<?> clazz) {
     TableMetadata tableMetadata = new TableMetadata();
 
-    // Strict Convention: ClassName -> snake_case_table_name
     tableMetadata.setTableName(getTableName(clazz));
-    tableMetadata.setTableType("TABLE");
+    tableMetadata.setTableType(TableType.TABLE.name());
 
     TableInfo tableInfo = new TableInfo(tableMetadata);
     tableInfo.setEntityClass(clazz);
