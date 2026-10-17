@@ -50,7 +50,7 @@ class PreparedStatementLoggerTest {
 
   @BeforeEach
   void setUp() throws SQLException {
-    ps = PreparedStatementLogger.newInstance(this.preparedStatement, log, 1);
+    ps = PreparedStatementLogger.newInstance(this.preparedStatement, new JdbcLog(log, 1));
   }
 
   @Test

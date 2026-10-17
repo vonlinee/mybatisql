@@ -65,7 +65,7 @@ public class BatchExecutor extends BaseExecutor {
       BatchResult batchResult = batchResultList.get(last);
       batchResult.addParameterObject(parameterObject);
     } else {
-      Connection connection = getConnection(ms);
+      Connection connection = getConnection(ms, handler.getBoundSql());
       stmt = handler.prepare(connection, transaction.getTimeout());
       handler.parameterize(stmt); // fix Issues 322
       currentSql = sql;

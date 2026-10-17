@@ -16,9 +16,7 @@
 package org.apache.ibatis.logging.jdbc;
 
 import java.lang.reflect.Method;
-import java.sql.Array;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,8 +27,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.ibatis.builder.SqlSourceBuilder;
-import org.apache.ibatis.internal.util.ObjectUtils;
-import org.apache.ibatis.logging.Log;
 
 /**
  * Base class for proxies to do logging.
@@ -45,22 +41,16 @@ public abstract class BaseJdbcLogger {
 
   private final Map<Object, Object> columnMap = new HashMap<>();
 
-  private final List<Object> columnNames = new ArrayList<>();
-  private final List<Object> columnValues = new ArrayList<>();
+  protected final List<Object> columnNames = new ArrayList<>();
+  protected final List<Object> columnValues = new ArrayList<>();
 
-  protected final Log statementLog;
-  protected final int queryStack;
+  protected final JdbcLog log;
 
   /*
    * Default constructor
    */
-  public BaseJdbcLogger(Log log, int queryStack) {
-    this.statementLog = log;
-    if (queryStack == 0) {
-      this.queryStack = 1;
-    } else {
-      this.queryStack = queryStack;
-    }
+  public BaseJdbcLogger(JdbcLog log) {
+    this.log = log;
   }
 
   static {
@@ -85,27 +75,20 @@ public abstract class BaseJdbcLogger {
   }
 
   protected String getParameterValueString() {
-    List<Object> typeList = new ArrayList<>(columnValues.size());
-    for (Object value : columnValues) {
-      if (value == null) {
-        typeList.add("null");
-      } else {
-        typeList.add(objectValueString(value) + "(" + value.getClass().getSimpleName() + ")");
-      }
-    }
-    final String parameters = typeList.toString();
-    return parameters.substring(1, parameters.length() - 1);
+    return log.getParameterValueAsString(columnNames, columnValues);
   }
 
+  /**
+   * Formats a single parameter value for compatibility with existing logger subclasses.
+   *
+   * @param value
+   *          the value to format
+   *
+   * @return the formatted value
+   */
+  @Deprecated
   protected String objectValueString(Object value) {
-    if (value instanceof Array) {
-      try {
-        return ObjectUtils.toString(((Array) value).getArray());
-      } catch (SQLException e) {
-        // Intentionally fall through to return value.toString()
-      }
-    }
-    return value.toString();
+    return log.objectValueString(value);
   }
 
   protected String getColumnString() {
@@ -123,35 +106,10 @@ public abstract class BaseJdbcLogger {
   }
 
   protected boolean isDebugEnabled() {
-    return statementLog.isDebugEnabled();
+    return log.isDebugEnabled();
   }
 
   protected boolean isTraceEnabled() {
-    return statementLog.isTraceEnabled();
+    return log.isTraceEnabled();
   }
-
-  protected void debug(String text, boolean input) {
-    if (statementLog.isDebugEnabled()) {
-      statementLog.debug(prefix(input) + text);
-    }
-  }
-
-  protected void trace(String text, boolean input) {
-    if (statementLog.isTraceEnabled()) {
-      statementLog.trace(prefix(input) + text);
-    }
-  }
-
-  private String prefix(boolean isInput) {
-    char[] buffer = new char[queryStack * 2 + 2];
-    Arrays.fill(buffer, '=');
-    buffer[queryStack * 2 + 1] = ' ';
-    if (isInput) {
-      buffer[queryStack * 2] = '>';
-    } else {
-      buffer[0] = '<';
-    }
-    return new String(buffer);
-  }
-
 }

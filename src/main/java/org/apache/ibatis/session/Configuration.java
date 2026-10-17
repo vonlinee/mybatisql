@@ -55,6 +55,8 @@ import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.io.VFS;
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
+import org.apache.ibatis.logging.jdbc.DefaultJdbcLogFactory;
+import org.apache.ibatis.logging.jdbc.JdbcLogFactory;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -176,6 +178,7 @@ public class Configuration {
 
   protected final SqlValueFormatter sqlValueFormatter = new SqlValueFormatterRegistry();
   protected final Map<Class<?>, SqlProviderFactory> sqlProviderFactories = new ConcurrentHashMap<>();
+  protected JdbcLogFactory jdbcLogFactory = new DefaultJdbcLogFactory();
 
   public Configuration(Environment environment) {
     this();
@@ -197,6 +200,14 @@ public class Configuration {
 
   public void setLogPrefix(String logPrefix) {
     this.logPrefix = logPrefix;
+  }
+
+  public void setJdbcLogFactory(JdbcLogFactory jdbcLogFactory) {
+    this.jdbcLogFactory = jdbcLogFactory;
+  }
+
+  public JdbcLogFactory getJdbcLogFactory() {
+    return jdbcLogFactory;
   }
 
   public Class<? extends Log> getLogImpl() {

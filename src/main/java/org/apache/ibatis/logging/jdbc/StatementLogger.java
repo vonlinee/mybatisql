@@ -21,7 +21,6 @@ import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.reflection.ExceptionUtils;
 
 /**
@@ -34,8 +33,8 @@ public final class StatementLogger extends BaseJdbcLogger implements InvocationH
 
   private final Statement statement;
 
-  private StatementLogger(Statement stmt, Log statementLog, int queryStack) {
-    super(statementLog, queryStack);
+  private StatementLogger(Statement stmt, JdbcLog log) {
+    super(log);
     this.statement = stmt;
   }
 
@@ -46,19 +45,17 @@ public final class StatementLogger extends BaseJdbcLogger implements InvocationH
         return method.invoke(this, params);
       }
       if (EXECUTE_METHODS.contains(method.getName())) {
-        if (isDebugEnabled()) {
-          debug(" Executing: " + removeExtraWhitespace((String) params[0]), true);
-        }
+        log.debug(" Executing: " + removeExtraWhitespace((String) params[0]), true);
         if ("executeQuery".equals(method.getName())) {
           ResultSet rs = (ResultSet) method.invoke(statement, params);
-          return rs == null ? null : ResultSetLogger.newInstance(rs, statementLog, queryStack);
+          return rs == null ? null : ResultSetLogger.newInstance(rs, log);
         } else {
           return method.invoke(statement, params);
         }
       }
       if ("getResultSet".equals(method.getName())) {
         ResultSet rs = (ResultSet) method.invoke(statement, params);
-        return rs == null ? null : ResultSetLogger.newInstance(rs, statementLog, queryStack);
+        return rs == null ? null : ResultSetLogger.newInstance(rs, log);
       } else {
         return method.invoke(statement, params);
       }
@@ -72,15 +69,13 @@ public final class StatementLogger extends BaseJdbcLogger implements InvocationH
    *
    * @param stmt
    *          the statement
-   * @param statementLog
+   * @param log
    *          the statement log
-   * @param queryStack
-   *          the query stack
    *
    * @return the proxy
    */
-  public static Statement newInstance(Statement stmt, Log statementLog, int queryStack) {
-    InvocationHandler handler = new StatementLogger(stmt, statementLog, queryStack);
+  public static Statement newInstance(Statement stmt, JdbcLog log) {
+    InvocationHandler handler = new StatementLogger(stmt, log);
     ClassLoader cl = Statement.class.getClassLoader();
     return (Statement) Proxy.newProxyInstance(cl, new Class[] { Statement.class }, handler);
   }

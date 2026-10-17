@@ -48,7 +48,7 @@ class ConnectionLoggerTest {
 
   @BeforeEach
   void setUp() throws SQLException {
-    conn = ConnectionLogger.newInstance(connection, log, 1);
+    conn = ConnectionLogger.newInstance(connection, new JdbcLog(log, 1));
   }
 
   @Test

@@ -45,7 +45,7 @@ class StatementLoggerTest {
 
   @BeforeEach
   void setUp() throws SQLException {
-    st = StatementLogger.newInstance(statement, log, 1);
+    st = StatementLogger.newInstance(statement, new JdbcLog(log, 1));
   }
 
   @Test

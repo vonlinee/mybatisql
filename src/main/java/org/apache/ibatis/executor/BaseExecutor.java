@@ -29,7 +29,7 @@ import org.apache.ibatis.executor.statement.StatementUtil;
 import org.apache.ibatis.internal.util.JdbcUtils;
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
-import org.apache.ibatis.logging.jdbc.ConnectionLogger;
+import org.apache.ibatis.logging.jdbc.JdbcLogFactory;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ParameterMapping;
@@ -294,7 +294,7 @@ public abstract class BaseExecutor implements Executor {
   }
 
   protected Statement prepareStatement(StatementHandler handler, MappedStatement ms) throws SQLException {
-    Connection connection = getConnection(ms);
+    Connection connection = getConnection(ms, handler.getBoundSql());
     Statement stmt = handler.prepare(connection, transaction.getTimeout());
     handler.parameterize(stmt);
     return stmt;
@@ -352,10 +352,14 @@ public abstract class BaseExecutor implements Executor {
   }
 
   protected Connection getConnection(MappedStatement stmt) throws SQLException {
+    return getConnection(stmt, null);
+  }
+
+  protected Connection getConnection(MappedStatement stmt, BoundSql boundSql) throws SQLException {
     Connection connection = transaction.getConnection();
-    Log statementLog = stmt.getStatementLog();
-    if (statementLog.isDebugEnabled()) {
-      return ConnectionLogger.newInstance(connection, statementLog, queryStack);
+    JdbcLogFactory jdbcLogFactory = stmt.getConfiguration().getJdbcLogFactory();
+    if (jdbcLogFactory.isLogEnabled(stmt)) {
+      return jdbcLogFactory.enableSqlLog(connection, stmt, boundSql, queryStack);
     }
     return connection;
   }

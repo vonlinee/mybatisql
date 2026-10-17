@@ -37,7 +37,7 @@ import org.apache.ibatis.transaction.Transaction;
  */
 public class ReuseExecutor extends BaseExecutor {
 
-  private final Map<String, Statement> statementMap = new HashMap<>();
+  private final Map<MappedStatement, Map<String, Statement>> statementMap = new HashMap<>();
 
   public ReuseExecutor(Configuration configuration, Transaction transaction) {
     super(configuration, transaction);
@@ -69,8 +69,10 @@ public class ReuseExecutor extends BaseExecutor {
 
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) {
-    for (Statement stmt : statementMap.values()) {
-      closeStatement(stmt);
+    for (Map<String, Statement> statements : statementMap.values()) {
+      for (Statement stmt : statements.values()) {
+        closeStatement(stmt);
+      }
     }
     statementMap.clear();
     return Collections.emptyList();
@@ -81,33 +83,34 @@ public class ReuseExecutor extends BaseExecutor {
     Statement stmt;
     BoundSql boundSql = handler.getBoundSql();
     String sql = boundSql.getSql();
-    if (hasStatementFor(sql)) {
-      stmt = getStatement(sql);
+    if (hasStatementFor(ms, sql)) {
+      stmt = getStatement(ms, sql);
       applyTransactionTimeout(stmt);
     } else {
-      Connection connection = getConnection(ms);
+      Connection connection = getConnection(ms, boundSql);
       stmt = handler.prepare(connection, transaction.getTimeout());
-      putStatement(sql, stmt);
+      putStatement(ms, sql, stmt);
     }
     handler.parameterize(stmt);
     return stmt;
   }
 
-  private boolean hasStatementFor(String sql) {
+  private boolean hasStatementFor(MappedStatement ms, String sql) {
     try {
-      Statement statement = statementMap.get(sql);
+      Statement statement = getStatement(ms, sql);
       return statement != null && !statement.getConnection().isClosed();
     } catch (SQLException e) {
       return false;
     }
   }
 
-  private Statement getStatement(String s) {
-    return statementMap.get(s);
+  private Statement getStatement(MappedStatement ms, String sql) {
+    Map<String, Statement> statements = statementMap.get(ms);
+    return statements == null ? null : statements.get(sql);
   }
 
-  private void putStatement(String sql, Statement stmt) {
-    statementMap.put(sql, stmt);
+  private void putStatement(MappedStatement ms, String sql, Statement stmt) {
+    statementMap.computeIfAbsent(ms, key -> new HashMap<>()).put(sql, stmt);
   }
 
 }

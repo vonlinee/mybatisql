@@ -48,7 +48,7 @@ class ResultSetLoggerTest {
     when(metaData.getColumnType(1)).thenReturn(type);
     when(metaData.getColumnLabel(1)).thenReturn("ColumnName");
     when(log.isTraceEnabled()).thenReturn(true);
-    ResultSet resultSet = ResultSetLogger.newInstance(rs, log, 1);
+    ResultSet resultSet = ResultSetLogger.newInstance(rs, new JdbcLog(log, 1));
     resultSet.next();
   }
 

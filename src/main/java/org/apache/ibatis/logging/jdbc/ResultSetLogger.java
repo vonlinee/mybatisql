@@ -20,13 +20,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.sql.Types;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.StringJoiner;
 
-import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.reflection.ExceptionUtils;
 
 /**
@@ -54,8 +51,8 @@ public final class ResultSetLogger extends BaseJdbcLogger implements InvocationH
     BLOB_TYPES.add(Types.VARBINARY);
   }
 
-  private ResultSetLogger(ResultSet rs, Log statementLog, int queryStack) {
-    super(statementLog, queryStack);
+  private ResultSetLogger(ResultSet rs, JdbcLog log) {
+    super(log);
     this.rs = rs;
   }
 
@@ -74,12 +71,17 @@ public final class ResultSetLogger extends BaseJdbcLogger implements InvocationH
             final int columnCount = rsmd.getColumnCount();
             if (first) {
               first = false;
-              printColumnHeaders(rsmd, columnCount);
+              for (int i = 1; i <= columnCount; i++) {
+                if (BLOB_TYPES.contains(rsmd.getColumnType(i))) {
+                  blobColumns.add(i);
+                }
+              }
+              log.printColumnHeaders(rsmd, columnCount);
             }
-            printColumnValues(columnCount);
+            log.printColumnValues(rs, columnNames, columnValues, blobColumns, columnCount);
           }
         } else {
-          debug("     Total: " + rows, false);
+          log.debug("     Total: " + rows, false);
         }
       }
       clearColumnInfo();
@@ -89,48 +91,18 @@ public final class ResultSetLogger extends BaseJdbcLogger implements InvocationH
     }
   }
 
-  private void printColumnHeaders(ResultSetMetaData rsmd, int columnCount) throws SQLException {
-    StringJoiner row = new StringJoiner(", ", "   Columns: ", "");
-    for (int i = 1; i <= columnCount; i++) {
-      if (BLOB_TYPES.contains(rsmd.getColumnType(i))) {
-        blobColumns.add(i);
-      }
-      row.add(rsmd.getColumnLabel(i));
-    }
-    trace(row.toString(), false);
-  }
-
-  private void printColumnValues(int columnCount) {
-    StringJoiner row = new StringJoiner(", ", "       Row: ", "");
-    for (int i = 1; i <= columnCount; i++) {
-      try {
-        if (blobColumns.contains(i)) {
-          row.add("<<BLOB>>");
-        } else {
-          row.add(rs.getString(i));
-        }
-      } catch (SQLException e) {
-        // generally can't call getString() on a BLOB column
-        row.add("<<Cannot Display>>");
-      }
-    }
-    trace(row.toString(), false);
-  }
-
   /**
    * Creates a logging version of a ResultSet.
    *
    * @param rs
    *          the ResultSet to proxy
-   * @param statementLog
+   * @param log
    *          the statement log
-   * @param queryStack
-   *          the query stack
    *
    * @return the ResultSet with logging
    */
-  public static ResultSet newInstance(ResultSet rs, Log statementLog, int queryStack) {
-    InvocationHandler handler = new ResultSetLogger(rs, statementLog, queryStack);
+  public static ResultSet newInstance(ResultSet rs, JdbcLog log) {
+    InvocationHandler handler = new ResultSetLogger(rs, log);
     ClassLoader cl = ResultSet.class.getClassLoader();
     return (ResultSet) Proxy.newProxyInstance(cl, new Class[] { ResultSet.class }, handler);
   }
