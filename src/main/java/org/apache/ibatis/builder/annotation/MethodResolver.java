@@ -24,16 +24,18 @@ import org.apache.ibatis.builder.PendingResolver;
  */
 class MethodResolver extends PendingResolver {
   private final MapperAnnotationBuilder annotationBuilder;
+  private final Class<?> type;
   private final Method method;
 
-  public MethodResolver(MapperAnnotationBuilder annotationBuilder, Method method) {
+  public MethodResolver(MapperAnnotationBuilder annotationBuilder, Class<?> type, Method method) {
     this.annotationBuilder = annotationBuilder;
+    this.type = type;
     this.method = method;
   }
 
   @Override
   protected void doResolve() {
-    annotationBuilder.parseStatement(method);
+    annotationBuilder.parseStatement(type, method);
   }
 
 }

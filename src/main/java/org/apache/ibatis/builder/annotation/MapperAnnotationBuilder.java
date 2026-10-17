@@ -118,39 +118,52 @@ public class MapperAnnotationBuilder {
   }
 
   public void parse() {
-    String resource = type.toString();
-    if (!configuration.isResourceLoaded(resource)) {
-      loadXmlResource();
-      configuration.addLoadedResource(resource);
-      assistant.setCurrentNamespace(namespace);
-      parseCache();
-      parseCacheRef();
+    parse(this.namespace, this.type);
+  }
 
-      registerTable(type);
+  protected void parse(String namespace, Class<?> type) {
+    final String resource = type.toString();
+    if (configuration.isResourceLoaded(resource)) {
+      return;
+    }
 
-      if (type.isAnnotationPresent(NamedResultMap.class)) {
-        parseNamedResultMap(type.getAnnotation(NamedResultMap.class));
+    // Spring may not know the real resource name so we check a flag
+    // to prevent loading again a resource twice
+    // this flag is set at XMLMapperBuilder#bindMapperForNamespace
+    if (!configuration.isResourceLoaded("namespace:" + namespace)) {
+      loadXmlResource(namespace, type);
+    }
+
+    configuration.addLoadedResource(resource);
+    assistant.setCurrentNamespace(namespace);
+    parseCache(this.assistant, type);
+    parseCacheRef(this.assistant, type);
+
+    registerTable(type);
+
+    if (type.isAnnotationPresent(NamedResultMap.class)) {
+      parseNamedResultMap(namespace, type.getAnnotation(NamedResultMap.class));
+    }
+
+    if (type.isAnnotationPresent(NamedResultMaps.class)) {
+      parseNamedResultMaps(namespace, type);
+    }
+    final String databaseId = configuration.getDatabaseId();
+    for (Method method : type.getMethods()) {
+      if (!canHaveStatement(method)) {
+        continue;
       }
-
-      if (type.isAnnotationPresent(NamedResultMaps.class)) {
-        parseNamedResultMaps();
+      if (getAnnotationWrapper(databaseId, method, false, Select.class, SelectProvider.class).isPresent()
+          && method.getAnnotation(ResultMap.class) == null) {
+        parseResultMap(namespace, type, method);
       }
-      final String databaseId = configuration.getDatabaseId();
-      for (Method method : type.getMethods()) {
-        if (!canHaveStatement(method)) {
-          continue;
-        }
-        if (getAnnotationWrapper(databaseId, method, false, Select.class, SelectProvider.class).isPresent()
-            && method.getAnnotation(ResultMap.class) == null) {
-          parseResultMap(method);
-        }
-        try {
-          parseStatement(method);
-        } catch (IncompleteElementException e) {
-          configuration.addIncompleteMethod(new MethodResolver(this, method));
-        }
+      try {
+        parseStatement(type, method);
+      } catch (IncompleteElementException e) {
+        configuration.addIncompleteMethod(new MethodResolver(this, type, method));
       }
     }
+
     configuration.parsePendingMethods(false);
   }
 
@@ -168,50 +181,49 @@ public class MapperAnnotationBuilder {
     return !method.isBridge() && !method.isDefault();
   }
 
-  private void loadXmlResource() {
-    // Spring may not know the real resource name so we check a flag
-    // to prevent loading again a resource twice
-    // this flag is set at XMLMapperBuilder#bindMapperForNamespace
-    if (!configuration.isResourceLoaded("namespace:" + namespace)) {
-      String xmlResource = namespace.replace('.', '/') + ".xml";
-      // #1347
-      InputStream inputStream = type.getResourceAsStream("/" + xmlResource);
-      if (inputStream == null) {
-        // Search XML mapper that is not in the module but in the classpath.
-        // Note: resource is not required
-        inputStream = Resources.getResourceAsStreamOrElseNull(type.getClassLoader(), xmlResource);
-      }
-      if (inputStream != null) {
-        XMLMapperBuilder xmlParser = new XMLMapperBuilder(inputStream, assistant.getConfiguration(), xmlResource,
-            configuration.getSqlFragments(), type);
-        xmlParser.parse();
-      }
+  protected void loadXmlResource(String namespace, Class<?> type) {
+    final String xmlResource = namespace.replace('.', '/') + ".xml";
+    // #1347
+    InputStream inputStream = type.getResourceAsStream("/" + xmlResource);
+    if (inputStream == null) {
+      // Search XML mapper that is not in the module but in the classpath.
+      // Note: resource is not required
+      inputStream = Resources.getResourceAsStreamOrElseNull(type.getClassLoader(), xmlResource);
+    }
+    if (inputStream != null) {
+      XMLMapperBuilder xmlParser = new XMLMapperBuilder(inputStream, assistant.getConfiguration(), xmlResource,
+          configuration.getSqlFragments(), type);
+      xmlParser.parse();
     }
   }
 
-  private void parseCache() {
+  public Configuration getConfiguration() {
+    return assistant.getConfiguration();
+  }
+
+  protected void parseCache(MapperBuilderAssistant assistant, Class<?> type) {
     CacheNamespace cacheDomain = type.getAnnotation(CacheNamespace.class);
     if (cacheDomain != null) {
       Integer size = cacheDomain.size() == 0 ? null : cacheDomain.size();
       Long flushInterval = cacheDomain.flushInterval() == 0 ? null : cacheDomain.flushInterval();
-      Properties props = convertToProperties(cacheDomain.properties());
+      Properties props = convertToProperties(cacheDomain.properties(), configuration.getVariables());
       assistant.useNewCache(cacheDomain.implementation(), cacheDomain.eviction(), flushInterval, size,
           cacheDomain.readWrite(), cacheDomain.blocking(), props);
     }
   }
 
-  private Properties convertToProperties(Property[] properties) {
+  private Properties convertToProperties(Property[] properties, Properties variables) {
     if (properties.length == 0) {
       return null;
     }
     Properties props = new Properties();
     for (Property property : properties) {
-      props.setProperty(property.name(), PropertyParser.parse(property.value(), configuration.getVariables()));
+      props.setProperty(property.name(), PropertyParser.parse(property.value(), variables));
     }
     return props;
   }
 
-  private void parseCacheRef() {
+  protected void parseCacheRef(MapperBuilderAssistant assistant, Class<?> type) {
     CacheNamespaceRef cacheDomainRef = type.getAnnotation(CacheNamespaceRef.class);
     if (cacheDomainRef != null) {
       Class<?> refType = cacheDomainRef.value();
@@ -231,24 +243,24 @@ public class MapperAnnotationBuilder {
     }
   }
 
-  private String parseResultMap(Method method) {
+  private String parseResultMap(String namespace, Class<?> type, Method method) {
     Class<?> returnType = getReturnType(method, type);
     Arg[] args = method.getAnnotationsByType(Arg.class);
     Result[] results = method.getAnnotationsByType(Result.class);
     TypeDiscriminator typeDiscriminator = method.getAnnotation(TypeDiscriminator.class);
-    String resultMapId = generateResultMapName(method);
+    String resultMapId = generateResultMapName(namespace, method);
     applyResultMap(resultMapId, returnType, args, results, typeDiscriminator);
     return resultMapId;
   }
 
-  private void parseNamedResultMaps() {
+  protected void parseNamedResultMaps(String namespace, Class<?> type) {
     NamedResultMaps namedResultMaps = type.getAnnotation(NamedResultMaps.class);
     for (NamedResultMap namedResultMap : namedResultMaps.value()) {
-      parseNamedResultMap(namedResultMap);
+      parseNamedResultMap(namespace, namedResultMap);
     }
   }
 
-  private void parseNamedResultMap(NamedResultMap namedResultMap) {
+  private void parseNamedResultMap(String namespace, NamedResultMap namedResultMap) {
     validateNamedResultMap(namedResultMap);
 
     String resultMapId = namespace + '.' + namedResultMap.id();
@@ -274,7 +286,7 @@ public class MapperAnnotationBuilder {
     }
   }
 
-  private String generateResultMapName(Method method) {
+  protected String generateResultMapName(String namespace, Method method) {
     Results results = method.getAnnotation(Results.class);
     if (results != null && !results.id().isEmpty()) {
       return namespace + "." + results.id();
@@ -335,7 +347,7 @@ public class MapperAnnotationBuilder {
     return null;
   }
 
-  void parseStatement(Method method) {
+  void parseStatement(Class<?> type, Method method) {
     final Class<?> parameterTypeClass = getParameterType(method);
     final ParamNameResolver paramNameResolver = new ParamNameResolver(type, method,
         configuration.isUseActualParamName());
@@ -409,7 +421,7 @@ public class MapperAnnotationBuilder {
         if (resultMapAnnotation != null) {
           resultMapId = String.join(",", resultMapAnnotation.value());
         } else {
-          resultMapId = generateResultMapName(method);
+          resultMapId = generateResultMapName(namespace, method);
         }
       }
 
@@ -503,7 +515,7 @@ public class MapperAnnotationBuilder {
       Class<?> rawType = (Class<?>) parameterizedType.getRawType();
       if (isSequentialType(rawType)) {
         Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-        if (actualTypeArguments != null && actualTypeArguments.length == 1) {
+        if (actualTypeArguments.length == 1) {
           Type returnTypeParameter = actualTypeArguments[0];
           if (returnTypeParameter instanceof Class<?>) {
             returnType = (Class<?>) returnTypeParameter;
@@ -519,7 +531,7 @@ public class MapperAnnotationBuilder {
       } else if (method.isAnnotationPresent(MapKey.class) && Map.class.isAssignableFrom(rawType)) {
         // (gcode issue 504) Do not look into Maps if there is not MapKey annotation
         Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-        if (actualTypeArguments != null && actualTypeArguments.length == 2) {
+        if (actualTypeArguments.length == 2) {
           Type returnTypeParameter = actualTypeArguments[1];
           if (returnTypeParameter instanceof Class<?>) {
             returnType = (Class<?>) returnTypeParameter;
