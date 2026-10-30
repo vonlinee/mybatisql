@@ -292,6 +292,8 @@ public class XMLConfigBuilder extends BaseBuilder {
         booleanValueOf(props.getProperty("argNameBasedConstructorAutoMapping"), false));
     configuration.setDefaultSqlProviderType(resolveClass(props.getProperty("defaultSqlProviderType")));
     configuration.setNullableOnForEach(booleanValueOf(props.getProperty("nullableOnForEach"), false));
+    configuration.setUseEqualsWhenInTagHasSingleItem(
+        booleanValueOf(props.getProperty("useEqualsWhenInTagHasSingleItem"), false));
   }
 
   private void environmentsElement(XNode context) throws Exception {

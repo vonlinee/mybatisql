@@ -15,11 +15,17 @@
  */
 package org.apache.ibatis.submitted.in;
 
+import static org.apache.ibatis.builder.annotation.MapperAnnotationBuilder.getQualifiedStatementId;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.ibatis.BaseDataTest;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -87,6 +93,43 @@ class InTest {
       List<Integer> ids = Arrays.asList(2, 3, 4);
       int countShorthand = mapper.countByUserListWithColumnInTag(ids);
       Assertions.assertEquals(3, countShorthand);
+    }
+  }
+
+  @Test
+  void shouldUseEqualsForSingleItemInTagWhenConfigured() {
+    Configuration configuration = sqlSessionFactory.getConfiguration();
+    configuration.setUseEqualsWhenInTagHasSingleItem(true);
+    configuration.setShrinkWhitespacesInSql(true);
+    try {
+      MappedStatement bodyStatement = configuration
+          .getMappedStatement(getQualifiedStatementId(Mapper::countByUserListWithInTag));
+      User user = new User();
+      user.setId(2);
+      BoundSql bodySql = bodyStatement.getBoundSql(Collections.singletonMap("list", Collections.singleton(user)));
+      Assertions.assertTrue(bodySql.getSql().contains("id = ?"));
+
+      MappedStatement shorthandStatement = configuration
+          .getMappedStatement(getQualifiedStatementId(Mapper::countByUserListWithInTagShorthand));
+      BoundSql shorthandSql = shorthandStatement.getBoundSql(Collections.singletonMap("ids", Collections.singleton(2)));
+      Assertions.assertTrue(shorthandSql.getSql().contains("id = ?"));
+
+      BoundSql nullSql = shorthandStatement
+          .getBoundSql(Collections.singletonMap("ids", Collections.singletonList(null)));
+      Assertions.assertTrue(nullSql.getSql().contains("id = ?"));
+
+      MappedStatement columnStatement = configuration
+          .getMappedStatement(getQualifiedStatementId(Mapper::countByUserListWithColumnInTag));
+      BoundSql columnSql = columnStatement.getBoundSql(Collections.singletonMap("ids", Collections.singleton(2)));
+      Assertions.assertTrue(columnSql.getSql().contains("u.id = ?"));
+
+      BoundSql multipleSql = shorthandStatement.getBoundSql(Collections.singletonMap("ids", Arrays.asList(2, 3)));
+      Assertions.assertTrue(multipleSql.getSql().contains("id IN ( ? , ? )"));
+
+      BoundSql emptySql = shorthandStatement.getBoundSql(Collections.singletonMap("ids", Collections.emptyList()));
+      Assertions.assertFalse(emptySql.getSql().contains("IN"));
+    } finally {
+      configuration.setUseEqualsWhenInTagHasSingleItem(false);
     }
   }
 

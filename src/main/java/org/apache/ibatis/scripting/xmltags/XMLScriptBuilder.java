@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.extension.SqlUtils;
-import org.apache.ibatis.internal.util.StringUtils;
 import org.apache.ibatis.parsing.XNode;
 import org.apache.ibatis.scripting.*;
 import org.apache.ibatis.session.Configuration;
@@ -205,20 +204,11 @@ public class XMLScriptBuilder {
       String item = nodeToHandle.getStringAttribute("item", "item");
       String index = nodeToHandle.getStringAttribute("index");
       String column = nodeToHandle.getStringAttribute("column");
-      String open = " IN (";
-      if (StringUtils.isNotBlank(column)) {
-        open = column + open;
-      }
-      String close = ")";
-      String separator = ",";
-
       SqlNode contents = sqlNode;
       if (!nodeToHandle.hasElementChildNodes() && nodeToHandle.isBodyBlank()) {
         contents = new TextSqlNode("#{" + item + "}");
       }
-
-      // Syntactic sugar for IN (?). We delegate to ForEachSqlNode which handles collection iteration.
-      return new ForEachSqlNode(contents, collection, nullable, index, item, open, close, separator);
+      return new InSqlNode(contents, collection, nullable, index, item, column);
     }
   }
 

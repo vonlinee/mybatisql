@@ -54,66 +54,83 @@ public class ForEachSqlNode extends XmlSqlNode {
     this.item = item;
   }
 
-  @Override
-  public boolean apply(@NotNull SqlBuildContext context) {
+  protected Iterable<?> getIterable(SqlBuildContext context) {
     final Map<String, Object> bindings = context.getBindings();
     final boolean nullableOnForEach = this.nullable == null ? context.getConfiguration().isNullableOnForEach()
         : this.nullable;
     final ExpressionEvaluator evaluator = context.getExpressionEvaluator();
-    final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings, nullableOnForEach);
+    return evaluator.evaluateIterable(collectionExpression, bindings, nullableOnForEach);
+  }
+
+  @Override
+  public boolean apply(@NotNull SqlBuildContext context) {
+    final Iterable<?> iterable = this.getIterable(context);
     if (iterable == null || !iterable.iterator().hasNext()) {
       return true;
     }
+    return applyIterableItems(context, iterable);
+  }
+
+  protected final boolean applyIterableItems(SqlBuildContext context, Iterable<?> iterable) {
     boolean first = true;
     applyOpen(context);
     int i = 0;
     for (Object o : iterable) {
-      PrefixedContext scopedContext = new PrefixedContext(context, first || separator == null ? "" : separator);
-      // Issue #709
-      if (o instanceof Map.Entry) {
-        @SuppressWarnings("unchecked")
-        Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
-        applyIndex(scopedContext, mapEntry.getKey());
-        applyItem(scopedContext, mapEntry.getValue());
-      } else {
-        applyIndex(scopedContext, i);
-        applyItem(scopedContext, o);
-      }
-      contents.apply(scopedContext);
-      if (first) {
-        first = !scopedContext.isPrefixApplied();
-      }
+      first = applyElement(context, i, o, first);
       i++;
     }
     applyClose(context);
     return true;
   }
 
-  private void applyIndex(SqlBuildContext context, Object o) {
+  protected final boolean applyElement(SqlBuildContext context, int index, Object o, boolean first) {
+    PrefixedContext scopedContext = new PrefixedContext(context, first || separator == null ? "" : separator);
+    // Issue #709
+    applyIndexedItem(scopedContext, index, o);
+    contents.apply(scopedContext);
+    if (first) {
+      first = !scopedContext.isPrefixApplied();
+    }
+    return first;
+  }
+
+  protected void applyIndexedItem(SqlBuildContext context, int index, Object o) {
+    if (o instanceof Map.Entry) {
+      @SuppressWarnings("unchecked")
+      Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
+      applyIndex(context, mapEntry.getKey());
+      applyItem(context, mapEntry.getValue());
+    } else {
+      applyIndex(context, index);
+      applyItem(context, o);
+    }
+  }
+
+  protected void applyIndex(SqlBuildContext context, Object o) {
     if (index != null) {
       context.bind(index, o);
     }
   }
 
-  private void applyItem(SqlBuildContext context, Object o) {
+  protected void applyItem(SqlBuildContext context, Object o) {
     if (item != null) {
       context.bind(item, o);
     }
   }
 
-  private void applyOpen(SqlBuildContext context) {
+  protected void applyOpen(SqlBuildContext context) {
     if (open != null) {
       context.appendSql(open);
     }
   }
 
-  private void applyClose(SqlBuildContext context) {
+  protected void applyClose(SqlBuildContext context) {
     if (close != null) {
       context.appendSql(close);
     }
   }
 
-  private static class PrefixedContext extends DynamicContext {
+  protected static class PrefixedContext extends DynamicContext {
     private final SqlBuildContext delegate;
     private final String prefix;
     private boolean prefixApplied;

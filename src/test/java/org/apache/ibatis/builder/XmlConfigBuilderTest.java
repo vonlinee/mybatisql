@@ -296,6 +296,25 @@ class XmlConfigBuilderTest {
   }
 
   @Test
+  void shouldParseUseEqualsWhenInTagHasSingleItem() {
+    assertThat(new Configuration().isUseEqualsWhenInTagHasSingleItem()).isFalse();
+
+    String mapperConfig = """
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "https://mybatis.org/dtd/mybatis-3-config.dtd">
+        <configuration>
+          <settings>
+            <setting name="useEqualsWhenInTagHasSingleItem" value="true"/>
+          </settings>
+        </configuration>
+        """;
+
+    XMLConfigBuilder builder = new XMLConfigBuilder(new StringReader(mapperConfig));
+    Configuration configuration = builder.parse();
+    assertThat(configuration.isUseEqualsWhenInTagHasSingleItem()).isTrue();
+  }
+
+  @Test
   void unknownJavaTypeOnTypeHandler() {
     final String mapperConfig = """
         <?xml version="1.0" encoding="UTF-8" ?>

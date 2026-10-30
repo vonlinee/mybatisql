@@ -102,6 +102,7 @@ public class Configuration {
   protected boolean returnInstanceForEmptyRow;
   protected boolean shrinkWhitespacesInSql;
   protected boolean nullableOnForEach;
+  protected boolean useEqualsWhenInTagHasSingleItem;
   protected boolean argNameBasedConstructorAutoMapping;
 
   /**
@@ -301,6 +302,14 @@ public class Configuration {
    */
   public boolean isNullableOnForEach() {
     return nullableOnForEach;
+  }
+
+  public boolean isUseEqualsWhenInTagHasSingleItem() {
+    return useEqualsWhenInTagHasSingleItem;
+  }
+
+  public void setUseEqualsWhenInTagHasSingleItem(boolean useEqualsWhenInTagHasSingleItem) {
+    this.useEqualsWhenInTagHasSingleItem = useEqualsWhenInTagHasSingleItem;
   }
 
   public boolean isArgNameBasedConstructorAutoMapping() {
